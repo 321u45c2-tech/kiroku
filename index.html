@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chronos Sync Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a73e8; --bg: #f8f9fa; --card: #ffffff;
+            --text: #202124; --text-sub: #5f6368;
+            --input-bg: #f1f3f4; --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --danger: #ea4335; --accent: #34a853; 
+            --nav-bg: #1e293b; --tab-inactive: #94a3b8; --tab-active: #eab308;
+        }
+        body.dark-mode {
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
+            --text-sub: #94a3b8; --input-bg: #334155;
+            --shadow: 0 10px 30px rgba(0,0,0,0.3); --nav-bg: #0f172a;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif; background-color: var(--bg);
+            color: var(--text); margin: 0; padding: 0; transition: 0.3s;
+            display: flex; justify-content: center; overflow-x: hidden;
+        }
+        .app-shell { width: 100%; max-width: 500px; min-height: 100vh; position: relative; padding-bottom: 180px; }
+
+        header {
+            padding: 20px; display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; background: var(--bg); z-index: 1000;
+        }
+        .brand-wrap { display: flex; align-items: center; gap: 8px; }
+        .brand-logo { color: var(--primary); font-size: 28px; }
+        .brand-name { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 800; color: var(--primary); }
+        .header-controls { display: flex; align-items: center; gap: 10px; }
+        
+        .header-btn {
+            width: 44px; height: 44px; border-radius: 14px; border: none;
+            background: var(--card); color: var(--text); cursor: pointer;
+            box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center;
+            transition: 0.3s;
+        }
+        .header-btn.login-active { border: 2px solid var(--primary); color: var(--primary); }
+
+        .bottom-nav-container {
+            position: fixed; bottom: 25px; left: 0; width: 100%;
+            display: flex; flex-direction: column; align-items: center; gap: 18px; z-index: 2000; pointer-events: none;
+        }
+        .bottom-nav {
+            width: 90%; max-width: 400px; background: var(--nav-bg);
+            display: flex; justify-content: space-around; padding: 12px 8px;
+            border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            pointer-events: auto;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            color: var(--tab-inactive); cursor: pointer; flex: 1; transition: 0.2s;
+        }
+        .nav-item.active { color: var(--tab-active); }
+        .nav-item i { font-size: 26px; }
+        .nav-item span { font-size: 11px; font-weight: 700; }
+
+        .sync-btn-wrap { width: 100%; display: flex; justify-content: center; pointer-events: auto; }
+        .sync-btn {
+            width: 85%; max-width: 360px; padding: 18px; border-radius: 50px; border: none;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            color: white; font-size: 17px; font-weight: 800; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4); display: none;
+        }
+        .sync-btn.visible { display: block; animation: fadeInUp 0.3s ease; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page { display: none; padding: 0 15px; }
+        .page.active { display: block; }
+        .glass-card { background: var(--card); border-radius: 28px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+        
+        textarea {
+            width: 100%; height: 180px; border: 1px solid rgba(0,0,0,0.1); outline: none;
+            background: var(--input-bg); border-radius: 18px; padding: 16px; color: var(--text);
+            font-size: 14px; box-sizing: border-box; resize: none; margin-bottom: 20px;
+        }
+        
+        .preview-label { font-size: 14px; font-weight: 700; margin-bottom: 15px; display: block; }
+        .event-tile {
+            background: var(--input-bg); border-radius: 16px; padding: 14px;
+            margin-bottom: 12px; display: flex; align-items: center; gap: 14px;
+        }
+        .tile-time { background: var(--primary); color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; min-width: 50px; text-align: center; }
+        .tile-title { flex: 1; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+        .tile-detail { font-size: 11px; color: var(--text-sub); margin-top: 4px; display: block; }
+
+        .manage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .date-input { background: var(--input-bg); border: none; padding: 12px 14px; border-radius: 14px; color: var(--text); font-weight: 700; font-family: 'Outfit'; font-size: 14px; outline: none; }
+        .bulk-del { color: var(--danger); font-size: 12px; font-weight: 800; cursor: pointer; border: 1.5px solid var(--danger); padding: 7px 14px; border-radius: 12px; }
+
+        #toast { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); background: #202124; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 3000; display: none; }
+    </style>
+</head>
+<body id="body">
+
+<div id="toast"></div>
+
+<div class="app-shell">
+    <header>
+        <div class="brand-wrap">
+            <i class="material-icons-round brand-logo">auto_awesome</i>
+            <span class="brand-name">Chronos Sync</span>
+        </div>
+        <div class="header-controls">
+            <button class="header-btn" onclick="toggleDarkMode()"><i class="material-icons-round" id="themeIcon">dark_mode</i></button>
+            <button class="header-btn" id="loginBtn" onclick="handleAuthClick()"><i class="material-icons-round">account_circle</i></button>
+        </div>
+    </header>
+
+    <div id="page-home" class="page active">
+        <div class="glass-card">
+            <div class="preview-label">AIからのJSONをコピペ</div>
+            <textarea id="jsonInput" placeholder="あらゆる形式のJSONに対応..." oninput="renderPreview()"></textarea>
+            <div class="preview-label">プレビュー（同期前）</div>
+            <div id="previewList"><div style="text-align:center; padding:20px; opacity:0.5; font-size:13px;">データがありません</div></div>
+        </div>
+    </div>
+
+    <div id="page-history" class="page">
+        <div class="glass-card">
+            <div class="manage-header">
+                <input type="date" id="targetDate" class="date-input" onchange="fetchCalendar()">
+                <div class="bulk-del" onclick="bulkDelete()">一括削除</div>
+            </div>
+            <div id="calendarList"></div>
+        </div>
+    </div>
+
+    <div id="page-manual" class="page">
+        <div class="glass-card">
+            <div class="preview-label">個別スケジュール追加</div>
+            <div style="display:flex; flex-direction:column; gap:15px;">
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <span style="font-size:12px; font-weight:700; color:var(--text-sub); margin-left:5px;">日付</span>
+                    <input type="date" id="mDate" class="date-input" style="width:100%; box-sizing:border-box;">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <span style="font-size:12px; font-weight:700; color:var(--text-sub); margin-left:5px;">タイトル</span>
+                    <input type="text" id="mTitle" placeholder="予定のタイトル" style="padding:16px; border-radius:14px; border:none; background:var(--input-bg); color:var(--text); outline:none;">
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                        <span style="font-size:12px; font-weight:700; color:var(--text-sub); margin-left:5px;">開始</span>
+                        <input type="time" id="mStart" value="09:00" style="width:100%; padding:12px; border-radius:12px; border:none; background:var(--input-bg); color:var(--text); box-sizing:border-box;">
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                        <span style="font-size:12px; font-weight:700; color:var(--text-sub); margin-left:5px;">終了</span>
+                        <input type="time" id="mEnd" value="10:00" style="width:100%; padding:12px; border-radius:12px; border:none; background:var(--input-bg); color:var(--text); box-sizing:border-box;">
+                    </div>
+                </div>
+                <button class="sync-btn visible" style="display:block; position:static; width:100%; box-shadow:none; margin-top:10px;" onclick="addManual()">カレンダーに追加</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav-container">
+        <div class="sync-btn-wrap">
+            <button id="syncBtn" class="sync-btn visible" onclick="startSync()">Synchronize Now</button>
+        </div>
+        <nav class="bottom-nav">
+            <div class="nav-item" onclick="showPage('history', this)">
+                <i class="material-icons-round">calendar_month</i>
+                <span>履歴</span>
+            </div>
+            <div class="nav-item active" onclick="showPage('home', this)">
+                <i class="material-icons-round">home</i>
+                <span>ホーム</span>
+            </div>
+            <div class="nav-item" onclick="showPage('manual', this)">
+                <i class="material-icons-round">add_task</i>
+                <span>個別追加</span>
+            </div>
+        </nav>
+    </div>
+</div>
+
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
+<script>
+    const CLIENT_ID = '744715743775-ftsa9e32pl6ia39oeq8g8h32823dlpah.apps.googleusercontent.com';
+    const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+    let tokenClient;
+    let accessToken = localStorage.getItem('google_access_token');
+
+    function resetAllDates() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+        document.getElementById('targetDate').value = todayStr;
+        document.getElementById('mDate').value = todayStr;
+    }
+    resetAllDates();
+
+    function showPage(pageId, el) {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        el.classList.add('active');
+        
+        const syncBtn = document.getElementById('syncBtn');
+        if (pageId === 'home') syncBtn.classList.add('visible');
+        else syncBtn.classList.remove('visible');
+
+        if (pageId === 'history') fetchCalendar();
+    }
+
+    function toggleDarkMode() {
+        const body = document.getElementById('body');
+        body.classList.toggle('dark-mode');
+        document.getElementById('themeIcon').innerText = body.classList.contains('dark-mode') ? 'light_mode' : 'dark_mode';
+    }
+
+    function parseAnyJSON(input) {
+        try {
+            const data = JSON.parse(input);
+            let rawItems = [];
+            let globalDate = document.getElementById('targetDate').value;
+            if (Array.isArray(data)) rawItems = data;
+            else if (data.schedule && Array.isArray(data.schedule)) {
+                rawItems = data.schedule;
+                if (data.date) globalDate = data.date;
+            } else {
+                const firstArrayKey = Object.keys(data).find(k => Array.isArray(data[k]));
+                if (firstArrayKey) rawItems = data[firstArrayKey];
+                if (data.date) globalDate = data.date;
+            }
+            return rawItems.map(item => {
+                const title = item.title || item.activity || item.summary || "予定";
+                let start = item.start || item.time || "";
+                let end = item.end || "";
+                const detail = item.details || item.detail || item.description || "";
+                if (start.includes('T')) {
+                    const parts = start.split('T');
+                    if(parts[0]) globalDate = parts[0];
+                    start = parts[1].substring(0, 5);
+                }
+                if (end.includes('T')) end = end.split('T')[1].substring(0, 5);
+                return { title, start, end, detail, date: globalDate };
+            });
+        } catch (e) { return null; }
+    }
+
+    function renderPreview() {
+        const input = document.getElementById('jsonInput').value;
+        const list = document.getElementById('previewList');
+        if(!input) { list.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.5; font-size:13px;">データがありません</div>'; return; }
+        const items = parseAnyJSON(input);
+        if(!items) { list.innerHTML = '<div style="color:var(--danger); text-align:center; font-size:12px;">JSONを解析できません</div>'; return; }
+        list.innerHTML = items.map(ev => `
+            <div class="event-tile">
+                <div class="tile-time">${ev.start || '--:--'}</div>
+                <div class="tile-title">${ev.title}${ev.detail ? `<span class="tile-detail">${ev.detail}</span>` : ''}</div>
+            </div>
+        `).join('');
+    }
+
+    // ★修正：タイムゾーン・日付のバグを修正した取得ロジック
+    async function fetchCalendar() {
+        if(!accessToken) return;
+        const dateStr = document.getElementById('targetDate').value;
+        const list = document.getElementById('calendarList');
+        list.innerHTML = '<p style="text-align:center; font-size:12px; opacity:0.5; padding:40px 0;">読み込み中...</p>';
+        
+        try {
+            // リクエスト範囲を日本時間の00:00:00〜23:59:59に厳密に指定
+            const timeMin = `${dateStr}T00:00:00+09:00`;
+            const timeMax = `${dateStr}T23:59:59+09:00`;
+
+            const resp = await gapi.client.calendar.events.list({
+                'calendarId': 'primary',
+                'timeMin': timeMin,
+                'timeMax': timeMax,
+                'singleEvents': true,
+                'orderBy': 'startTime',
+                'timeZone': 'Asia/Tokyo'
+            });
+            
+            const events = resp.result.items || [];
+            if(!events.length) { 
+                list.innerHTML = '<p style="text-align:center; font-size:12px; opacity:0.5; padding:40px 0;">予定はありません</p>'; 
+                return; 
+            }
+
+            list.innerHTML = events.map(ev => {
+                // 文字列ベースで時間を抽出して時差ボケを防止
+                const startRaw = ev.start.dateTime || ev.start.date;
+                let timeStr = "--:--";
+                if (ev.start.dateTime) {
+                    const dt = new Date(startRaw);
+                    timeStr = `${dt.getHours()}:${String(dt.getMinutes()).padStart(2, '0')}`;
+                }
+
+                return `
+                    <div class="event-tile">
+                        <div class="tile-time">${timeStr}</div>
+                        <div class="tile-title">${ev.summary || '(タイトルなし)'}${ev.description ? `<span class="tile-detail">${ev.description}</span>` : ''}</div>
+                        <i class="material-icons-round" style="color:var(--danger); cursor:pointer; font-size:20px;" onclick="deleteEv('${ev.id}')">delete_outline</i>
+                    </div>
+                `;
+            }).join('');
+        } catch(e) { 
+            console.error(e);
+            list.innerHTML = '<p style="text-align:center; font-size:12px; color:var(--danger);">取得に失敗しました</p>'; 
+        }
+    }
+
+    async function startSync() {
+        if(!accessToken) { handleAuthClick(); return; }
+        const input = document.getElementById('jsonInput').value;
+        const items = parseAnyJSON(input);
+        if(!items) return;
+        showToast("カレンダーに同期中...");
+        for (const ev of items) {
+            if(!ev.start) continue;
+            const startDT = `${ev.date}T${ev.start}:00+09:00`;
+            let endDT = ev.end ? `${ev.date}T${ev.end}:00+09:00` : new Date(new Date(startDT).getTime() + 3600000).toISOString();
+            await gapi.client.calendar.events.insert({
+                'calendarId': 'primary',
+                'resource': { 
+                    'summary': ev.title, 'description': ev.detail,
+                    'start': { 'dateTime': startDT, 'timeZone': 'Asia/Tokyo' }, 
+                    'end': { 'dateTime': endDT, 'timeZone': 'Asia/Tokyo' } 
+                }
+            });
+        }
+        showToast("完了しました！");
+        document.getElementById('jsonInput').value = '';
+        renderPreview();
+        fetchCalendar();
+    }
+
+    async function addManual() {
+        const title = document.getElementById('mTitle').value;
+        const date = document.getElementById('mDate').value;
+        if(!title || !date) { showToast("情報を入力してください"); return; }
+        showToast("追加中...");
+        const startDT = `${date}T${document.getElementById('mStart').value}:00+09:00`;
+        const endDT = `${date}T${document.getElementById('mEnd').value}:00+09:00`;
+        
+        await gapi.client.calendar.events.insert({
+            'calendarId': 'primary',
+            'resource': { 
+                'summary': title, 
+                'start': { 'dateTime': startDT, 'timeZone': 'Asia/Tokyo' },
+                'end': { 'dateTime': endDT, 'timeZone': 'Asia/Tokyo' }
+            }
+        });
+        showToast("追加完了！");
+        document.getElementById('mTitle').value = '';
+        fetchCalendar();
+    }
+
+    async function deleteEv(id) {
+        if(!confirm("削除しますか？")) return;
+        await gapi.client.calendar.events.delete({ 'calendarId': 'primary', 'eventId': id });
+        fetchCalendar();
+    }
+
+    async function bulkDelete() {
+        const date = document.getElementById('targetDate').value;
+        if(!confirm("この日の全予定を削除しますか？")) return;
+        showToast("削除中...");
+        const timeMin = `${date}T00:00:00+09:00`;
+        const timeMax = `${date}T23:59:59+09:00`;
+        const resp = await gapi.client.calendar.events.list({ 'calendarId': 'primary', 'timeMin': timeMin, 'timeMax': timeMax, 'singleEvents': true });
+        for (const ev of resp.result.items) await gapi.client.calendar.events.delete({ 'calendarId': 'primary', 'eventId': ev.id });
+        fetchCalendar();
+        showToast("削除しました");
+    }
+
+    function gapiLoaded() {
+        gapi.load('client', () => {
+            gapi.client.init({}).then(() => {
+                gapi.client.load('calendar', 'v3');
+                if (accessToken) {
+                    gapi.client.setToken({ access_token: accessToken });
+                    document.getElementById('loginBtn').classList.add('login-active');
+                    fetchCalendar();
+                }
+            });
+        });
+    }
+
+    function gisLoaded() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID, scope: SCOPES,
+            callback: (resp) => {
+                accessToken = resp.access_token;
+                localStorage.setItem('google_access_token', accessToken);
+                document.getElementById('loginBtn').classList.add('login-active');
+                fetchCalendar();
+            },
+        });
+    }
+
+    function handleAuthClick() { tokenClient.requestAccessToken({ prompt: 'select_account' }); }
+    function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2500); }
+</script>
+</body>
+</html>
