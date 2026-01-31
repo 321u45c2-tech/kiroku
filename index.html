@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chronos Sync Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -24,8 +24,7 @@
             color: var(--text); margin: 0; padding: 0; transition: 0.3s;
             display: flex; justify-content: center; overflow-x: hidden;
         }
-        /* 全体の底上げ：ピッカー表示時にスクロールを可能にする */
-        .app-shell { width: 100%; max-width: 500px; min-height: 100vh; position: relative; padding-bottom: 300px; }
+        .app-shell { width: 100%; max-width: 500px; min-height: 100vh; position: relative; padding-bottom: 250px; }
 
         header {
             padding: 20px; display: flex; justify-content: space-between; align-items: center;
@@ -109,13 +108,12 @@
         .manage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .date-input { background: var(--input-bg); border: none; padding: 10px; border-radius: 12px; color: var(--text); font-weight: 700; font-size: 14px; outline: none; }
         
-        /* 入力エリアの調整：ピッカー被り防止 */
-        .manual-form-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
+        /* ピッカーの表示を安定させるためフォントサイズを16px（標準）に固定 */
         .manual-input { 
             width: 100%; padding: 14px; border-radius: 12px; border: none; 
             background: var(--input-bg); color: var(--text); box-sizing: border-box; 
-            font-size: 16px; margin-bottom: 4px; 
-            appearance: none; -webkit-appearance: none;
+            font-size: 16px; margin-bottom: 5px; 
+            -webkit-appearance: none;
         }
 
         #toast { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); background: #202124; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 3000; display: none; }
@@ -159,7 +157,7 @@
     <div id="page-manual" class="page">
         <div class="glass-card">
             <span class="preview-label">予定を個別に追加</span>
-            <div class="manual-form-group">
+            <div style="display:flex; flex-direction:column; gap:12px;">
                 <input type="date" id="mDate" class="manual-input">
                 <input type="text" id="mTitle" placeholder="予定のタイトル" class="manual-input">
                 <div style="display:flex; gap:10px;">
@@ -172,8 +170,7 @@
                         <input type="time" id="mEnd" value="10:00" class="manual-input">
                     </div>
                 </div>
-                <button class="sync-btn visible" style="display:block; position:static; width:100%; margin-top:20px;" onclick="addManual()">カレンダーに追加</button>
-                <div style="height: 120px;"></div> 
+                <button class="sync-btn visible" style="display:block; position:static; width:100%; margin-top:10px;" onclick="addManual()">カレンダーに追加</button>
             </div>
         </div>
     </div>
@@ -368,3 +365,4 @@
 </script>
 </body>
 </html>
+
