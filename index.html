@@ -24,8 +24,8 @@
             color: var(--text); margin: 0; padding: 0; transition: 0.3s;
             display: flex; justify-content: center; overflow-x: hidden;
         }
-        /* ピッカー対策：スクロール可能な高さを十分に確保 */
-        .app-shell { width: 100%; max-width: 500px; min-height: 100vh; position: relative; padding-bottom: 280px; }
+        /* 全体の底上げ：ピッカー表示時にスクロールを可能にする */
+        .app-shell { width: 100%; max-width: 500px; min-height: 100vh; position: relative; padding-bottom: 300px; }
 
         header {
             padding: 20px; display: flex; justify-content: space-between; align-items: center;
@@ -42,7 +42,7 @@
             box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center;
             transition: 0.3s; box-sizing: border-box;
         }
-        /* ログイン中の青枠表示 */
+        /* ログイン中の青枠 */
         .header-btn.login-active { 
             border: 3px solid var(--primary); 
             color: var(--primary); 
@@ -90,15 +90,15 @@
         
         .preview-label { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: block; opacity: 0.7; }
         
-        /* 削除時のスライドアニメーション */
+        /* 削除アニメーション */
         .event-tile {
             background: var(--input-bg); border-radius: 16px; padding: 12px;
             margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.5s ease;
             position: relative; overflow: hidden;
         }
         .event-tile.removing {
-            transform: translateX(100%);
+            transform: translateX(100px);
             opacity: 0;
             margin-top: -50px;
         }
@@ -109,11 +109,13 @@
         .manage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .date-input { background: var(--input-bg); border: none; padding: 10px; border-radius: 12px; color: var(--text); font-weight: 700; font-size: 14px; outline: none; }
         
-        /* 個別追加画面の入力欄とボタンの余白 */
+        /* 入力エリアの調整：ピッカー被り防止 */
+        .manual-form-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
         .manual-input { 
             width: 100%; padding: 14px; border-radius: 12px; border: none; 
             background: var(--input-bg); color: var(--text); box-sizing: border-box; 
-            font-size: 16px; margin-bottom: 12px; 
+            font-size: 16px; margin-bottom: 4px; 
+            appearance: none; -webkit-appearance: none;
         }
 
         #toast { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); background: #202124; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 3000; display: none; }
@@ -157,10 +159,10 @@
     <div id="page-manual" class="page">
         <div class="glass-card">
             <span class="preview-label">予定を個別に追加</span>
-            <div style="display:flex; flex-direction:column;">
+            <div class="manual-form-group">
                 <input type="date" id="mDate" class="manual-input">
                 <input type="text" id="mTitle" placeholder="予定のタイトル" class="manual-input">
-                <div style="display:flex; gap:10px; margin-bottom: 15px;">
+                <div style="display:flex; gap:10px;">
                     <div style="flex:1;">
                         <span style="font-size:10px; margin-left:5px;">開始</span>
                         <input type="time" id="mStart" value="09:00" class="manual-input">
@@ -170,8 +172,9 @@
                         <input type="time" id="mEnd" value="10:00" class="manual-input">
                     </div>
                 </div>
-                <button class="sync-btn visible" style="display:block; position:relative; width:100%; margin-top:10px;" onclick="addManual()">カレンダーに追加</button>
-                <div style="height: 100px;"></div> </div>
+                <button class="sync-btn visible" style="display:block; position:static; width:100%; margin-top:20px;" onclick="addManual()">カレンダーに追加</button>
+                <div style="height: 120px;"></div> 
+            </div>
         </div>
     </div>
 
@@ -221,7 +224,6 @@
         el.classList.add('active');
         document.getElementById('syncBtn').style.display = (pageId === 'home') ? 'block' : 'none';
         if(pageId === 'history') fetchCalendar();
-        window.scrollTo(0, 0);
     }
 
     function toggleDarkMode() { document.getElementById('body').classList.toggle('dark-mode'); }
@@ -231,7 +233,6 @@
             const data = JSON.parse(input);
             let raw = Array.isArray(data) ? data : (data.schedule || data.events || data.items || data.activities || (data.data && Array.isArray(data.data) ? data.data : [data]));
             let date = data.date || data.day || document.getElementById('targetDate').value;
-
             return raw.map(i => ({
                 title: i.title || i.activity || i.summary || i.task || i.name || "予定",
                 start: i.start || i.time || i.startTime || "09:00",
@@ -275,7 +276,6 @@
     }
 
     async function addManual() {
-        if(!accessToken) { handleAuthClick(); return; }
         const title = document.getElementById('mTitle').value;
         const date = document.getElementById('mDate').value;
         if(!title || !date) { showToast("情報を入力してください"); return; }
@@ -321,7 +321,6 @@
         if(!confirm("削除しますか？")) return;
         const target = document.getElementById('ev-' + id);
         if(target) target.classList.add('removing');
-        
         setTimeout(async () => {
             try {
                 await gapi.client.calendar.events.delete({ 'calendarId': 'primary', 'eventId': id });
@@ -338,57 +337,34 @@
         if(!confirm("この日の予定をすべて削除しますか？")) return;
         showToast("一括削除中...");
         const resp = await gapi.client.calendar.events.list({ 'calendarId': 'primary', 'timeMin': `${date}T00:00:00+09:00`, 'timeMax': `${date}T23:59:59+09:00`, 'singleEvents': true });
-        for (const ev of resp.result.items) {
-            await gapi.client.calendar.events.delete({ 'calendarId': 'primary', 'eventId': ev.id });
-        }
+        for (const ev of resp.result.items) await gapi.client.calendar.events.delete({ 'calendarId': 'primary', 'eventId': ev.id });
         fetchCalendar();
         showToast("削除完了");
     }
 
     function updateLoginUI() {
-        const btn = document.getElementById('loginBtn');
-        if (accessToken) {
-            btn.classList.add('login-active');
-        } else {
-            btn.classList.remove('login-active');
-        }
+        if (accessToken) document.getElementById('loginBtn').classList.add('login-active');
+        else document.getElementById('loginBtn').classList.remove('login-active');
     }
 
     function gapiLoaded() { 
         gapi.load('client', () => { 
             gapi.client.init({}).then(() => { 
                 gapi.client.load('calendar', 'v3'); 
-                if(accessToken) {
-                    gapi.client.setToken({access_token: accessToken});
-                    updateLoginUI();
-                }
+                if(accessToken) { gapi.client.setToken({access_token: accessToken}); updateLoginUI(); }
             }); 
         }); 
     }
 
     function gisLoaded() { 
         tokenClient = google.accounts.oauth2.initTokenClient({ 
-            client_id: CLIENT_ID, 
-            scope: SCOPES, 
-            callback: (resp) => { 
-                accessToken = resp.access_token; 
-                localStorage.setItem('google_access_token', accessToken); 
-                gapi.client.setToken({access_token: accessToken});
-                updateLoginUI();
-                fetchCalendar(); 
-            } 
+            client_id: CLIENT_ID, scope: SCOPES, 
+            callback: (resp) => { accessToken = resp.access_token; localStorage.setItem('google_access_token', accessToken); updateLoginUI(); fetchCalendar(); } 
         }); 
     }
 
-    function handleAuthClick() { 
-        tokenClient.requestAccessToken({ prompt: 'select_account' }); 
-    }
-
-    function showToast(m) { 
-        const t = document.getElementById('toast'); 
-        t.innerText = m; t.style.display = 'block'; 
-        setTimeout(()=>t.style.display='none', 2500); 
-    }
+    function handleAuthClick() { tokenClient.requestAccessToken({ prompt: 'select_account' }); }
+    function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 2500); }
 </script>
 </body>
 </html>
