@@ -24,8 +24,8 @@
             color: var(--text); margin: 0; padding: 0; transition: 0.3s;
             display: flex; justify-content: center; overflow-x: hidden;
         }
-        /* スマホピッカー対策：全体の底上げ余白を確保 */
-        .app-shell { width: 100%; max-width: 500px; min-height: 100vh; position: relative; padding-bottom: 250px; }
+        /* ピッカー対策：スクロール可能な高さを十分に確保 */
+        .app-shell { width: 100%; max-width: 500px; min-height: 100vh; position: relative; padding-bottom: 280px; }
 
         header {
             padding: 20px; display: flex; justify-content: space-between; align-items: center;
@@ -42,7 +42,7 @@
             box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center;
             transition: 0.3s; box-sizing: border-box;
         }
-        /* ログイン中の青枠を維持 */
+        /* ログイン中の青枠表示 */
         .header-btn.login-active { 
             border: 3px solid var(--primary); 
             color: var(--primary); 
@@ -90,15 +90,15 @@
         
         .preview-label { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: block; opacity: 0.7; }
         
-        /* 削除アニメーション */
+        /* 削除時のスライドアニメーション */
         .event-tile {
             background: var(--input-bg); border-radius: 16px; padding: 12px;
             margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
-            transition: all 0.5s ease;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative; overflow: hidden;
         }
         .event-tile.removing {
-            transform: translateX(100px);
+            transform: translateX(100%);
             opacity: 0;
             margin-top: -50px;
         }
@@ -109,12 +109,11 @@
         .manage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .date-input { background: var(--input-bg); border: none; padding: 10px; border-radius: 12px; color: var(--text); font-weight: 700; font-size: 14px; outline: none; }
         
-        /* 個別追加画面の余白を修正（はみ出し防止） */
+        /* 個別追加画面の入力欄とボタンの余白 */
         .manual-input { 
             width: 100%; padding: 14px; border-radius: 12px; border: none; 
             background: var(--input-bg); color: var(--text); box-sizing: border-box; 
-            font-size: 16px; /* 16pxにするとスマホで勝手にズームしなくなります */
-            margin-bottom: 8px; 
+            font-size: 16px; margin-bottom: 12px; 
         }
 
         #toast { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); background: #202124; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; z-index: 3000; display: none; }
@@ -158,10 +157,10 @@
     <div id="page-manual" class="page">
         <div class="glass-card">
             <span class="preview-label">予定を個別に追加</span>
-            <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; flex-direction:column;">
                 <input type="date" id="mDate" class="manual-input">
                 <input type="text" id="mTitle" placeholder="予定のタイトル" class="manual-input">
-                <div style="display:flex; gap:10px;">
+                <div style="display:flex; gap:10px; margin-bottom: 15px;">
                     <div style="flex:1;">
                         <span style="font-size:10px; margin-left:5px;">開始</span>
                         <input type="time" id="mStart" value="09:00" class="manual-input">
@@ -171,8 +170,8 @@
                         <input type="time" id="mEnd" value="10:00" class="manual-input">
                     </div>
                 </div>
-                <button class="sync-btn visible" style="display:block; position:static; width:100%; margin-top:20px; margin-bottom: 20px;" onclick="addManual()">カレンダーに追加</button>
-            </div>
+                <button class="sync-btn visible" style="display:block; position:relative; width:100%; margin-top:10px;" onclick="addManual()">カレンダーに追加</button>
+                <div style="height: 100px;"></div> </div>
         </div>
     </div>
 
@@ -222,6 +221,7 @@
         el.classList.add('active');
         document.getElementById('syncBtn').style.display = (pageId === 'home') ? 'block' : 'none';
         if(pageId === 'history') fetchCalendar();
+        window.scrollTo(0, 0);
     }
 
     function toggleDarkMode() { document.getElementById('body').classList.toggle('dark-mode'); }
@@ -229,14 +229,7 @@
     function parseAnyJSON(input) {
         try {
             const data = JSON.parse(input);
-            let raw = [];
-            if (Array.isArray(data)) {
-                raw = data;
-            } else {
-                raw = data.schedule || data.events || data.items || data.activities || (data.data && Array.isArray(data.data) ? data.data : []);
-            }
-            if (raw.length === 0 && !Array.isArray(data)) raw = [data];
-
+            let raw = Array.isArray(data) ? data : (data.schedule || data.events || data.items || data.activities || (data.data && Array.isArray(data.data) ? data.data : [data]));
             let date = data.date || data.day || document.getElementById('targetDate').value;
 
             return raw.map(i => ({
@@ -282,6 +275,7 @@
     }
 
     async function addManual() {
+        if(!accessToken) { handleAuthClick(); return; }
         const title = document.getElementById('mTitle').value;
         const date = document.getElementById('mDate').value;
         if(!title || !date) { showToast("情報を入力してください"); return; }
@@ -352,10 +346,11 @@
     }
 
     function updateLoginUI() {
+        const btn = document.getElementById('loginBtn');
         if (accessToken) {
-            document.getElementById('loginBtn').classList.add('login-active');
+            btn.classList.add('login-active');
         } else {
-            document.getElementById('loginBtn').classList.remove('login-active');
+            btn.classList.remove('login-active');
         }
     }
 
@@ -378,6 +373,7 @@
             callback: (resp) => { 
                 accessToken = resp.access_token; 
                 localStorage.setItem('google_access_token', accessToken); 
+                gapi.client.setToken({access_token: accessToken});
                 updateLoginUI();
                 fetchCalendar(); 
             } 
